@@ -130,51 +130,52 @@ def get_reviews(app_id: str, count: int = 80,
 
 
 # ---------------------------------------------------------------------------
-# 3. ANALYSE DE SENTIMENT (modèle pré-entraîné HuggingFace)
+# 3. ANALYSE DE SENTIMENT (TextBlob - NLP léger)
 # ---------------------------------------------------------------------------
-# Modèle de classification de texte (3 classes : positive / neutral / negative).
-# Il est léger et adapté à des textes courts comme des avis d'utilisateurs.
-SENTIMENT_MODEL = "cardiffnlp/twitter-roberta-base-sentiment-latest"
-
-
-@st.cache_resource(show_spinner=True)
-def load_sentiment_model():
-    """
-    Charge (une seule fois) le pipeline d'analyse de sentiment HuggingFace.
-
-    On utilise `st.cache_resource` car le modèle est un objet "lourd" qui
-    doit être partagé entre toutes les exécutions / sessions, et non
-    re-téléchargé à chaque interaction.
-    """
-    # Import local : transformers/torch ne sont chargés que si on fait
-    # réellement de l'analyse de sentiment (démarrage de l'app plus rapide).
-    from transformers import pipeline
-    return pipeline("sentiment-analysis", model=SENTIMENT_MODEL,
-                    truncation=True)
+# On utilise TextBlob qui fournit une analyse de sentiment basée sur un
+# lexique (polarity entre -1 et +1). C'est léger, rapide, et ne nécessite
+# pas de télécharger un modèle de plusieurs Go.
+SENTIMENT_METHOD = "TextBlob"
 
 
 def analyze_reviews(review_texts: list[str]) -> pd.DataFrame:
     """
-    Calcule le sentiment de chaque avis.
+    Calcule le sentiment de chaque avis avec TextBlob.
+
+    TextBlob attribue un score de polarité entre -1 (très négatif) et +1
+    (très positif). On catégorise :
+        - polarity > 0.1  -> positive
+        - polarity < -0.1 -> negative
+        - sinon           -> neutral
 
     Retour
     ------
     pandas.DataFrame
         Colonnes : review, label (positive/neutral/negative), confidence.
     """
+    from textblob import TextBlob
+
     if not review_texts:
         return pd.DataFrame(columns=["review", "label", "confidence"])
 
-    classifier = load_sentiment_model()
-    predictions = classifier(review_texts)
-
     rows = []
-    for text, pred in zip(review_texts, predictions):
+    for text in review_texts:
+        blob = TextBlob(text)
+        polarity = blob.sentiment.polarity  # entre -1 et +1
+
+        if polarity > 0.1:
+            label = "positive"
+        elif polarity < -0.1:
+            label = "negative"
+        else:
+            label = "neutral"
+
+        # La "confidence" est l'intensité absolue de la polarité (0 à 1).
+        confidence = round(abs(polarity), 3)
         rows.append({
             "review": text,
-            # Le label est normalisé en minuscules (positive/neutral/negative)
-            "label": pred["label"].lower(),
-            "confidence": round(float(pred["score"]), 3),
+            "label": label,
+            "confidence": confidence,
         })
     return pd.DataFrame(rows)
 
