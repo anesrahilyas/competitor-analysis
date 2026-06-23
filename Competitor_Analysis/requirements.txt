@@ -1,9 +1,7 @@
 streamlit==1.43.2
-pandas==2.2.3
-matplotlib==3.10.0
-seaborn==0.13.2
+pandas
+matplotlib
+seaborn
 google-play-scraper==1.2.7
 wordcloud==1.9.4
-transformers==4.44.2
---extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.4.1+cpu
+textblob
