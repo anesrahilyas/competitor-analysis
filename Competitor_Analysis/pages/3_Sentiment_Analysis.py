@@ -33,8 +33,8 @@ df: pd.DataFrame = st.session_state["results_df"]
 st.caption(f"Analyse de sentiment pour : « {st.session_state.get('search_term', '')} »")
 
 st.write(
-    "On utilise un modèle de classification de texte pré-entraîné "
-    f"(`{utils.SENTIMENT_MODEL}`) pour évaluer le sentiment des avis."
+    "On utilise TextBlob pour évaluer le sentiment des avis utilisateurs. "
+    "Chaque avis reçoit un score de polarité classé en positif / neutre / négatif."
 )
 
 # Nombre d'avis à analyser par application (curseur dans la sidebar).
